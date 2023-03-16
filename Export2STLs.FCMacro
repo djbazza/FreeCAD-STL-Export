@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
-# Opens current visible objects in Slic3r. One can use different slicing software
+# make it easy to export STLs Meshes of the individually selected objects from FreeCAD
 
-__Title__ = 'Export to Slicer'
-__Author__ = 'Damian Łoziński'
-__Version__ = '0.3'
-__Date__ = '2022-12-16'
-__Comment__ = 'Export selected objects to amf/stl files and open it in Slicer'
-__Web__ = 'https://github.com/dlozinski/FreeCAD-macros/blob/doc/ImportExport/ExportToSlicer.md'
+__Title__ = 'Export STLs'
+__Author__ = 'David Barrett'
+__Comment__= 'Adapted from Export to Slicer by Damian Łoziński'
+__Version__ = '0.11'
+__Date__ = '2023-03-16'
+__Comment__ = 'Export selected objects to individual stl files'
+__Web__ = 'https://github.com/djbazza/FreeCAD-STL-Export'
 __Wiki__ = ''
-__Icon__ = 'Export2Slicer.png'
-__Help__ = 'You may need to change slicer path. To do so open Tools > Edit parameters > BaseApp/Preferences/Macros/Export2Slicer'
+__Icon__ = ''
+__Help__ = 'You will need to change export path. To do so open Tools > Edit parameters > BaseApp/Preferences/Macros/Export2STLs'
 __Status__ = 'Stable'
-__Requires__ = 'freecad 0.17+'
-__Communication__ = 'lozinski dot d at gmail dot com'
-__Files__ = 'Export2Slicer.png'
+__Requires__ = 'freecad 0.2+'
+__Communication__ = 'djbarrett at gmail dot com'
+__Files__ = 'Export2STLs.FCMacro'
 
 import os
 import re
@@ -22,17 +23,25 @@ import Mesh
 import MeshPart
 import FreeCAD as app
 
-MACRO_PARAMS_PATH = 'User parameter:BaseApp/Preferences/Macros/Export2Slicer'
+MACRO_PARAMS_PATH = 'User parameter:BaseApp/Preferences/Macros/Export2STLs'
+#DEFAULT_SLICER_PATH = '%USERPROFILE%/Downloads/PrusaSlicer/prusa-slicer.exe'
+DEFAULT_EXPORT_PATH = '%USERPROFILE%/Documents/'
 DEFAUL_MESH_FORMAT = 'stl'
 DEFAULT_ANGULAR_DEFLECTION = 0.07
 
 macro_params = app.ParamGet(MACRO_PARAMS_PATH)
 
 # Slicing program executable. One can use different slicing software here and provide proper slicer executable location and custom flags
-slicer_path = macro_params.GetString('SlicerPath')
-if not slicer_path:
-    macro_params.SetString('SlicerPath', DEFAULT_SLICER_PATH)
-    slicer_path = DEFAULT_SLICER_PATH
+#slicer_path = macro_params.GetString('SlicerPath')
+#if not slicer_path:
+#    macro_params.SetString('SlicerPath', DEFAULT_SLICER_PATH)
+#    slicer_path = DEFAULT_SLICER_PATH
+
+# Export Path for STL File
+export_path = macro_params.GetString('ExportPath')
+if not export_path:
+    macro_params.SetString('ExportPath', DEFAULT_EXPORT_PATH)
+    export_path = DEFAULT_EXPORT_PATH
 
 output_format = macro_params.GetString('OutputFormat');
 if not output_format:
@@ -78,23 +87,20 @@ def main():
         for o in objects_to_export:
             mesh_name = o.Label
             if o.TypeId == 'Mesh::Feature':
-                mesh_path = get_mesh_filename("C:/Users/davidb/Documents/3d printing/Export/", mesh_name)
+                mesh_path = get_mesh_filename(export_path, mesh_name)
                 Mesh.export(o, mesh_path)
             else:
                 mesh = tmp_doc.addObject('Mesh::Feature', '{}_{}'.format(doc.Label, o.Label))
                 mesh.Mesh = MeshPart.meshFromShape(o.Shape, LinearDeflection=0.1, AngularDeflection=angular_deflection, Relative=False)
                 mesh_path = get_mesh_filename("C:/Users/davidb/Documents/3d printing/Export/", mesh_name)
                 Mesh.export([mesh], mesh_path)
-                app.Console.PrintMessage('Export2STL: Objects exported: {}\n'.format(mesh_path))
-        else:
-            raise RuntimeError('No object selected')
+                app.Console.PrintMessage('Export2STLs: Objects exported: {}\n'.format(mesh_path))
+    except:
+        raise RuntimeError('No object selected')
     finally:
         app.closeDocument('meshes')
-
-    # Launch Slicer with meshes
-    #subprocess.Popen((slicer_path, mesh_path))
 
 try:
     main()
 except Exception as e:
-    app.Console.PrintError('Export2Slicer error: {}\n'.format(e))
+    app.Console.PrintError('Export2STLs error: {}\n'.format(e))
